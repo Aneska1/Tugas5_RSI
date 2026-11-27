@@ -1,0 +1,21 @@
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies
+**/node_modules/
+
+# Build output
+**/dist/
+**/coverage/
+
+# TypeScript build files
+**/*.tsbuildinfo
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
