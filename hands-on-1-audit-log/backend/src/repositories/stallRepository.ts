@@ -1,4 +1,4 @@
-import sql from 'mssql';
+import sql from 'mssql/msnodesqlv8';
 import { getPool } from '../db/pool.ts';
 import type { StallDto } from '../dtos/stallDto.ts';
 
