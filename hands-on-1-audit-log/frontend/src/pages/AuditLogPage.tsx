@@ -22,7 +22,7 @@ import {
 } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useLogout } from '../hooks/useLogout'
-import { errorMessage, getAuditLogs, getFieldErrors } from '../lib/api'
+import { errorMessage, getAuditLogDetail, getAuditLogs, getFieldErrors } from '../lib/api'
 import {
   actionLabel,
   actionTone,
@@ -41,6 +41,8 @@ const PAGE_SIZE = 20
 interface FilterDraft {
   action: string
   targetTable: string
+  targetId: string
+  userId: string
   from: string
   to: string
 }
@@ -48,6 +50,8 @@ interface FilterDraft {
 const emptyFilters: FilterDraft = {
   action: '',
   targetTable: '',
+  targetId: '',
+  userId: '',
   from: '',
   to: '',
 }
@@ -57,6 +61,19 @@ const emptyPagination: AuditLogPagination = {
   pageSize: PAGE_SIZE,
   total: 0,
   totalPages: 0,
+}
+
+function metadataText(metadata: unknown, key: string): string {
+  if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
+    return '-'
+  }
+
+  const value = (metadata as Record<string, unknown>)[key]
+  if (value === null || value === undefined || value === '') return '-'
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return JSON.stringify(value) ?? String(value)
 }
 
 export function AuditLogPage() {
@@ -73,6 +90,8 @@ export function AuditLogPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -83,6 +102,8 @@ export function AuditLogPage() {
       pageSize: PAGE_SIZE,
       action: filters.action || undefined,
       targetTable: filters.targetTable || undefined,
+      targetId: filters.targetId ? Number(filters.targetId) : undefined,
+      userId: filters.userId ? Number(filters.userId) : undefined,
       from: filters.from || undefined,
       to: filters.to || undefined,
     })
@@ -113,6 +134,21 @@ export function AuditLogPage() {
       active = false
     }
   }, [filters, page, reloadToken])
+
+  const openDetail = async (id: number) => {
+    setIsDetailLoading(true)
+    setDetailError(null)
+    setSelectedLog(null)
+
+    try {
+      const detail = await getAuditLogDetail(id)
+      setSelectedLog(detail)
+    } catch (detailLoadError) {
+      setDetailError(errorMessage(detailLoadError))
+    } finally {
+      setIsDetailLoading(false)
+    }
+  }
 
   const refresh = () => {
     setIsRefreshing(true)
@@ -169,7 +205,7 @@ export function AuditLogPage() {
 
         <Card className="mb-4 p-4">
           <form
-            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
             onSubmit={(event) => {
               event.preventDefault()
               applyFilters()
@@ -218,6 +254,44 @@ export function AuditLogPage() {
             </label>
 
             <label className="block text-xs font-semibold text-text-muted">
+              Target ID
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder="ID objek"
+                className={`${inputClass} mt-1`}
+                value={draftFilters.targetId}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    targetId: event.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-text-muted">
+              User ID
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder="ID pengguna"
+                className={`${inputClass} mt-1`}
+                value={draftFilters.userId}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    userId: event.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-text-muted">
               Dari tanggal
               <input
                 type="date"
@@ -257,6 +331,23 @@ export function AuditLogPage() {
             </div>
           </form>
         </Card>
+
+        {isDetailLoading ? (
+          <div className="mb-4 rounded-control border border-border bg-surface-muted p-3 text-sm text-text-muted" role="status">
+            Memuat detail audit dari server...
+          </div>
+        ) : null}
+
+        {detailError ? (
+          <div className="mb-4">
+            <Alert tone="error" title="Detail audit gagal dimuat">
+              <div className="flex flex-wrap items-center gap-2">
+                <span>{detailError}</span>
+                <Button variant="secondary" onClick={() => setDetailError(null)}>Tutup pesan</Button>
+              </div>
+            </Alert>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mb-4">
@@ -376,7 +467,7 @@ export function AuditLogPage() {
                           <Button
                             variant="secondary"
                             className="min-h-8 px-2.5 text-xs"
-                            onClick={() => setSelectedLog(log)}
+                            onClick={() => void openDetail(log.id)}
                           >
                             <Eye className="size-3.5" aria-hidden="true" />
                             Lihat
@@ -473,6 +564,30 @@ export function AuditLogPage() {
                 <dt className="text-xs text-text-muted">User ID</dt>
                 <dd className="m-0 font-semibold">
                   {selectedLog.userId ?? '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-text-muted">IP Address</dt>
+                <dd className="m-0 break-all font-semibold">
+                  {metadataText(selectedLog.metadata, 'ip_address')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-text-muted">Role</dt>
+                <dd className="m-0 font-semibold">
+                  {metadataText(selectedLog.metadata, 'role')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-text-muted">Result</dt>
+                <dd className="m-0 font-semibold">
+                  {metadataText(selectedLog.metadata, 'result')}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-text-muted">User Agent</dt>
+                <dd className="m-0 break-all text-xs font-medium">
+                  {metadataText(selectedLog.metadata, 'user_agent')}
                 </dd>
               </div>
             </dl>
