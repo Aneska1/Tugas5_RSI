@@ -1,4 +1,4 @@
-import sql from 'mssql';
+import sql from 'mssql/msnodesqlv8';
 import { getPool } from '../db/pool.ts';
 import type { UserRole } from '../types/user.ts';
 

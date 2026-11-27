@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import sql from 'mssql';
+import sql from 'mssql/msnodesqlv8';
 import { getPool } from '../db/pool.ts';
 import { createRequest } from '../db/request.ts';
 import type {

@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 
 function required(name: string): string {
@@ -37,11 +38,10 @@ export const env = {
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN?.trim() || '1d',
   bcryptSaltRounds: numberFromEnv('BCRYPT_SALT_ROUNDS', 10),
+
   db: {
-    server: process.env.DB_SERVER?.trim() || 'localhost',
+    server: process.env.DB_SERVER?.trim() || '127.0.0.1',
     port: numberFromEnv('DB_PORT', 1433),
-    user: required('DB_USER'),
-    password: required('DB_PASSWORD'),
     database: required('DB_NAME'),
     encrypt: process.env.DB_ENCRYPT === 'true',
     trustServerCertificate:

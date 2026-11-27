@@ -1,5 +1,5 @@
 
-import type sql from 'mssql';
+import type sql from 'mssql/msnodesqlv8';
 import type {
   AuditLogDto,
   AuditLogPageDto,

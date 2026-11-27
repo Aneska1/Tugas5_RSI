@@ -1,16 +1,20 @@
-import sql from 'mssql';
+
+import sql from 'mssql/msnodesqlv8';
 import { env } from '../config/env.ts';
 
 const config: sql.config = {
   server: env.db.server,
   port: env.db.port,
-  user: env.db.user,
-  password: env.db.password,
   database: env.db.database,
+
+  driver: 'ODBC Driver 18 for SQL Server',
+
   options: {
+    trustedConnection: true,
     encrypt: env.db.encrypt,
     trustServerCertificate: env.db.trustServerCertificate,
   },
+
   pool: {
     max: 10,
     min: 0,
