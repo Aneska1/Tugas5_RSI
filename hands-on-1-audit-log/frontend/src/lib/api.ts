@@ -1,5 +1,5 @@
 import type { AxiosResponse } from 'axios'
-import type { AuditLogFilters, AuditLogList } from '../types/auditLog'
+import type { AuditLog, AuditLogFilters, AuditLogList } from '../types/auditLog'
 import type { LoginPayload, RegisterPayload, User } from '../types/auth'
 import type {
   AdminOrder,
@@ -196,6 +196,19 @@ export async function getAuditLogs(
     data.pagination === null
   ) {
     throw new ApiError(200, 'INVALID_RESPONSE', 'Riwayat audit tidak valid.')
+  }
+
+  return data
+}
+
+
+export async function getAuditLogDetail(id: number): Promise<AuditLog> {
+  const data = await getData<AuditLog>(
+    http.get(`/audit-logs/${id}`),
+  )
+
+  if (typeof data !== 'object' || data === null || !('id' in data)) {
+    throw new ApiError(200, 'INVALID_RESPONSE', 'Detail audit tidak valid.')
   }
 
   return data
